@@ -42,9 +42,12 @@ train_lm <- df_lm[index,]
 test_lm <- df_lm[-index,]
 lm_model <- glm(quality ~., data = train_lm, family = "binomial")
 lm_prediction <- predict(lm_model, test_lm, type = "response")
+# ROC curve
+ROC_lm <- roc(test_lm$quality, lm_prediction)
+ROC_lm_auc <- auc(ROC_lm)
+# and confusion matrix, requiring a definite prediction
 lm_prediction <- round(lm_prediction, digits = 0)
-#the below or round(), either way
-#lm_prediction <- ifelse(lm_prediction>0.5,1,0)
+#lm_prediction <- ifelse(lm_prediction>0.5,1,0) - this or round(), either way
 lm_prediction <- as.factor(lm_prediction)
 lm_matrix <- confusionMatrix(lm_prediction, test_lm$quality)
 
@@ -52,19 +55,24 @@ lm_matrix <- confusionMatrix(lm_prediction, test_lm$quality)
 rf2_model <- randomForest(quality ~., data = train_lm)
 rf2_prediction <- predict(rf2_model, test_lm)
 rf2_matrix <- confusionMatrix(rf2_prediction, test_lm$quality)
+# and for returning probability
+rf2_prediction_prob <- predict(rf2_model, test_lm, type='prob')
+# ROC curve
+ROC_rf <- roc(test_lm$quality, rf2_prediction_prob[,2])
+ROC_rf_auc <- auc(ROC_rf)
 
 ### stepwise regression
 # df as loaded straight from cv, quality not changed to factors (?)
 
 df_sw <- df
-df_sw$quality <- as.factor(df_sw$quality)
+#df_sw$quality <- as.factor(df_sw$quality)
 
 null_model <- glm(quality ~ 1, data = df_sw)
 full_model <- glm(quality ~ ., data = df_sw)
 step_model <- step(null_model, scope = list(lower = null_model, upper = full_model), direction = "forward")
 stepwise_purchase_prediction <- predict(step_model, type = "response")
 stepwise_purchase_prediction <- round(stepwise_purchase_prediction, digits = 0)
-stepwise_purchase_prediction <- as.factor(stepwise_purchase_prediction)
+#stepwise_purchase_prediction <- as.factor(stepwise_purchase_prediction)
 sw_matrix <- confusionMatrix(stepwise_purchase_prediction, df_sw$quality)
 
 #library(pROC)
@@ -80,5 +88,5 @@ null_model <- glm(quality ~ 1, data = df2_sw)
 full_model <- glm(quality ~ ., data = df2_sw)
 step_model <- step(null_model, scope = list(lower = null_model, upper = full_model), direction = "forward")
 stepwise_purchase_prediction <- predict(step_model, type = "response")
-ROC <- roc(df2_sw$quality, stepwise_purchase_prediction)
-auc(ROC)
+ROC_sw <- roc(df2_sw$quality, stepwise_purchase_prediction)
+ROC_sw_auc <- auc(ROC_sw)
