@@ -30,7 +30,7 @@ sqrt(mean((rf_prediction-test$quality)^2)) # pointless if quality is a factor
 # get the caret and e1071 package to make a confusion matrix
 library(caret)
 library(e1071)
-rf_matrix <- confusionMatrix(rf_prediction, test$quality)
+rf_matrix <- confusionMatrix(rf_prediction, test_rf$quality)
 
 ### linear model
 
@@ -49,6 +49,19 @@ ROC_lm_auc <- auc(ROC_lm)
 lm_prediction <- round(lm_prediction, digits = 0)
 #lm_prediction <- ifelse(lm_prediction>0.5,1,0) - this or round(), either way
 lm_prediction <- as.factor(lm_prediction)
+lm_matrix <- confusionMatrix(lm_prediction, test_lm$quality)
+
+# linear model predicting 3, 4, 5, 6, 7, 8
+df_lm <- df
+#df_lm$quality <- ifelse(df_lm$quality>5,1,0) # df_lm$quality has to be integer - won't work if already converted to factor
+#df_lm$quality <- as.factor(df_lm$quality)
+train_lm <- df_lm[index,]
+test_lm <- df_lm[-index,]
+lm_model <- glm(quality ~., data = train_lm)
+lm_prediction <- predict(lm_model, test_lm)
+lm_prediction <- round(lm_prediction, digits = 0)
+#lm_prediction <- as.factor(lm_prediction)
+#test_lm$quality <- as.factor(test_lm$quality)
 lm_matrix <- confusionMatrix(lm_prediction, test_lm$quality)
 
 # random forest on binomial "good" or "bad" df_lm - same thing
