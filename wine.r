@@ -21,7 +21,7 @@ index <- sample(1:nrow(df),size = 0.8*nrow(df))
 library(randomForest)
 # for a random forest, quality has to be a factor
 df_rf <- df
-df_rf$quality <- as.factor(df_rf$quality)
+#df_rf$quality <- as.factor(df_rf$quality)
 train_rf <- df_rf[index,]
 test_rf <- df_rf[-index,]
 rf_model <- randomForest(quality ~., data = train_rf)
@@ -40,7 +40,7 @@ ranger_model <- train(
   quality ~ .,
   tuneLength = 10,
   data = train_svm, method = "ranger",
-  trControl = trainControl(method = "cv", number = 10, verboseIter = TRUE)
+  trControl = trainControl(method = "cv", number = 10, verboseIter = FALSE)
 )
 
 ranger_predict <- predict(ranger_model, test_svm)
@@ -61,13 +61,13 @@ library(glmnet)
 
 #levels(svm_df$quality) <- make.names(levels(factor(svm_df$quality)))
 
-model <- train(
+glm_model <- train(
   quality ~ ., train_svm,
   method = "glmnet",
   trControl = myControl
 )
 
-glm_predict <- predict(model, test_svm)
+glm_predict <- predict(glm_model, test_svm)
 mean(glm_predict == test_svm$quality)
 glm_matrix <- confusionMatrix(glm_predict, test_svm$quality)
 
@@ -164,7 +164,7 @@ svm_matrix <- confusionMatrix(svm_predict, test_svm$quality)
 
 tune_out <- 
     tune.svm(x = train_svm[, -12], y = train_svm[, 12], 
-             type = "C-classification", cost = 10^(-1:2), 
+             type = "C-classification", cost = c(0.1, 1, 10, 100), 
              gamma = c(0.1, 1, 10), coef0 = c(0.1, 1, 10))
 
 #list optimal values
@@ -237,3 +237,21 @@ ntree_opt_cv <- gbm.perf(object = boosting_model,
                          
 boosting_predict <- predict(boosting_model, test_svm, n.trees = ntree_opt_cv)
 #boosting_matrix <- confusionMatrix(boosting_predict, test_svm$quality)
+
+### k-nearest neighbor
+# get rid of classProbs = TRUE otherwise get the error "At least one of the class levels is not a valid R variable name"
+
+myControl <- trainControl(method = "repeatedcv",
+                 number = 10,
+                 repeats = 1,
+                 #classProbs = TRUE,
+                 #summaryFunction = twoClassSummary)
+                 )
+                 
+k_model <- train(quality ~. , data = train_svm, method = "knn",
+               trControl = myControl,
+               #metric = "ROC")
+               )
+               
+k_predict <- predict(k_model, test_svm)
+k_matrix <- confusionMatrix(k_predict, test_svm$quality)
